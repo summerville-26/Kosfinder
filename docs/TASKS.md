@@ -21,7 +21,7 @@ Dokumen ini memuat daftar rincian tugas teknis (*tasks*) yang disusun berdasarka
 
 | ID | Tujuan | Story & AC Terkait | File yang Boleh Diubah | Cara Menguji | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **T05** | Implementasikan kueri pencarian nama/area dan penyaringan rentang harga pada `KosRepository` dan `KosProvider` | US02 (US02-AC1, US02-AC2) | `lib/repositories/kos_repository.dart`, `lib/providers/kos_provider.dart` | Unit test fungsi pencarian teks dan filter rentang harga minimum/maksimum | `[ ] Belum Dikerjakan` |
+| **T05** | Implementasikan kueri pencarian nama/area dan penyaringan rentang harga pada `KosRepository` dan `KosProvider` | US02 (US02-AC1, US02-AC2) | `lib/repositories/kos_repository.dart`, `lib/providers/kos_provider.dart` | Unit test fungsi pencarian teks dan filter rentang harga minimum/maksimum | `[x] Selesai` |
 | **T06** | Buat SearchBar, Dialog/Sheet Filter Harga, dan widget Empty State di `HomeScreen` | US02 (US02-AC1, US02-AC2) | `lib/screens/home_screen.dart`, `lib/widgets/search_filter_bar.dart`, `lib/widgets/empty_state.dart` | Ketik area pada bilah pencarian, ubah rentang harga, dan ketik kata acak untuk memastikan pesan "Kos tidak ditemukan" muncul | `[ ] Belum Dikerjakan` |
 
 ---

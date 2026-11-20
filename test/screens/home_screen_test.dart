@@ -14,12 +14,22 @@ class MockSuccessRepo extends KosRepository {
   MockSuccessRepo(this.data);
 
   @override
-  Future<List<Kos>> getAllKos() async => data;
+  Future<List<Kos>> getAllKos({
+    String? query,
+    int? minPrice,
+    int? maxPrice,
+  }) async =>
+      data;
 }
 
 class MockErrorRepo extends KosRepository {
   @override
-  Future<List<Kos>> getAllKos() async => throw Exception('Network error');
+  Future<List<Kos>> getAllKos({
+    String? query,
+    int? minPrice,
+    int? maxPrice,
+  }) async =>
+      throw Exception('Network error');
 }
 
 void main() {

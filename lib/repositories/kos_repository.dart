@@ -17,13 +17,29 @@ class KosRepository {
     }
   }
 
-  /// Mengambil semua data kos publik dari tabel `kos` terurut dari yang terbaru.
-  Future<List<Kos>> getAllKos() async {
+  /// Mengambil semua data kos publik dari tabel `kos` dengan opsi pencarian teks dan filter harga.
+  Future<List<Kos>> getAllKos({
+    String? query,
+    int? minPrice,
+    int? maxPrice,
+  }) async {
     try {
-      final response = await client
-          .from('kos')
-          .select()
-          .order('created_at', ascending: false);
+      var request = client.from('kos').select();
+
+      if (query != null && query.trim().isNotEmpty) {
+        final clean = query.trim();
+        request = request.or('name.ilike.%$clean%,area.ilike.%$clean%');
+      }
+
+      if (minPrice != null && minPrice > 0) {
+        request = request.gte('price', minPrice);
+      }
+
+      if (maxPrice != null && maxPrice > 0) {
+        request = request.lte('price', maxPrice);
+      }
+
+      final response = await request.order('created_at', ascending: false);
 
       final data = response as List<dynamic>;
       return data
