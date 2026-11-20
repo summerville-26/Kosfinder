@@ -1,36 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/kos.dart';
+import '../providers/auth_provider.dart';
 import '../providers/kos_provider.dart';
+import '../repositories/auth_repository.dart';
 import '../repositories/kos_repository.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/kos_card.dart';
 import '../widgets/search_filter_bar.dart';
 import 'about_screen.dart';
+import 'auth_screen.dart';
 import 'kos_detail_screen.dart';
+import 'owner_dashboard_screen.dart';
 
 /// Layar beranda publik dengan pencarian nama/area dan filter harga.
 class HomeScreen extends StatelessWidget {
   final KosRepository? repository;
+  final AuthRepository? authRepository;
   final ValueChanged<Kos>? onKosSelected;
 
   const HomeScreen({
     super.key,
     this.repository,
+    this.authRepository,
     this.onKosSelected,
   });
 
   @override
   Widget build(BuildContext context) {
+    Widget child = _HomeScreenView(onKosSelected: onKosSelected);
+
+    // Membungkus dengan KosProvider jika belum tersedia di tree
     try {
       Provider.of<KosProvider>(context, listen: false);
-      return _HomeScreenView(onKosSelected: onKosSelected);
     } catch (_) {
-      return ChangeNotifierProvider<KosProvider>(
+      child = ChangeNotifierProvider<KosProvider>(
         create: (_) => KosProvider(repository: repository)..fetchKos(),
-        child: _HomeScreenView(onKosSelected: onKosSelected),
+        child: child,
       );
     }
+
+    // Membungkus dengan AuthProvider jika belum tersedia di tree
+    try {
+      Provider.of<AuthProvider>(context, listen: false);
+    } catch (_) {
+      child = ChangeNotifierProvider<AuthProvider>(
+        create: (_) => AuthProvider(repository: authRepository),
+        child: child,
+      );
+    }
+
+    return child;
   }
 }
 
@@ -77,6 +97,31 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
     );
   }
 
+  void _handleAccountNavigation(BuildContext context) {
+    final authProvider = context.read<AuthProvider>();
+    if (authProvider.isAuthenticated) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider<AuthProvider>.value(
+            value: authProvider,
+            child: const OwnerDashboardScreen(),
+          ),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider<AuthProvider>.value(
+            value: authProvider,
+            child: const AuthScreen(),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<KosProvider>();
@@ -94,6 +139,11 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.person_outline_rounded),
+            tooltip: 'Akun Pemilik',
+            onPressed: () => _handleAccountNavigation(context),
+          ),
           IconButton(
             icon: const Icon(Icons.info_outline),
             tooltip: 'Tentang Aplikasi',
@@ -190,7 +240,6 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
                 final list = provider.kosList;
 
                 if (list.isEmpty) {
-                  // Kasus Data Kosong karena Pencarian/Filter (US02-AC2)
                   if (provider.hasActiveFilter) {
                     return EmptyState(
                       icon: Icons.search_off_rounded,
@@ -201,7 +250,6 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
                     );
                   }
 
-                  // Kasus Data Kosong Umum
                   return const EmptyState(
                     icon: Icons.inbox_outlined,
                     title: 'Belum Ada Kos',

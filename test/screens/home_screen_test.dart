@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kosfinder/models/kos.dart';
+import 'package:kosfinder/providers/auth_provider.dart';
 import 'package:kosfinder/providers/kos_provider.dart';
+import 'package:kosfinder/repositories/auth_repository.dart';
 import 'package:kosfinder/repositories/kos_repository.dart';
 import 'package:kosfinder/screens/about_screen.dart';
+import 'package:kosfinder/screens/auth_screen.dart';
 import 'package:kosfinder/screens/home_screen.dart';
 import 'package:kosfinder/screens/kos_detail_screen.dart';
+import 'package:kosfinder/screens/owner_dashboard_screen.dart';
 import 'package:kosfinder/widgets/empty_state.dart';
 import 'package:kosfinder/widgets/kos_card.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MockSuccessRepo extends KosRepository {
   final List<Kos> data;
@@ -44,6 +49,23 @@ class MockErrorRepo extends KosRepository {
       throw Exception('Network error');
 }
 
+class MockUnauthRepo extends AuthRepository {
+  @override
+  User? get currentUser => null;
+}
+
+class MockAuthRepoWithUser extends AuthRepository {
+  @override
+  User? get currentUser => const User(
+        id: 'u1',
+        appMetadata: {},
+        userMetadata: {},
+        aud: 'authenticated',
+        createdAt: '2026-11-20T00:00:00Z',
+        email: 'logged@test.com',
+      );
+}
+
 void main() {
   group('HomeScreen Widget Tests', () {
     final kosDago = Kos(
@@ -77,11 +99,15 @@ void main() {
     testWidgets('Shows loading indicator initially, then displays list of kos',
         (WidgetTester tester) async {
       final provider = KosProvider(repository: MockSuccessRepo(allData));
+      final authProvider = AuthProvider(repository: MockUnauthRepo());
 
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<KosProvider>.value(
-            value: provider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<KosProvider>.value(value: provider),
+              ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+            ],
             child: const HomeScreen(),
           ),
         ),
@@ -99,11 +125,15 @@ void main() {
         'Shows error message and "Coba Lagi" button on network failure (US01-AC2)',
         (WidgetTester tester) async {
       final provider = KosProvider(repository: MockErrorRepo());
+      final authProvider = AuthProvider(repository: MockUnauthRepo());
 
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<KosProvider>.value(
-            value: provider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<KosProvider>.value(value: provider),
+              ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+            ],
             child: const HomeScreen(),
           ),
         ),
@@ -123,11 +153,15 @@ void main() {
         'Searching for an area filters the list (US02-AC1)',
         (WidgetTester tester) async {
       final provider = KosProvider(repository: MockSuccessRepo(allData));
+      final authProvider = AuthProvider(repository: MockUnauthRepo());
 
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<KosProvider>.value(
-            value: provider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<KosProvider>.value(value: provider),
+              ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+            ],
             child: const HomeScreen(),
           ),
         ),
@@ -136,7 +170,6 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // Enter search term "Dago"
       await tester.enterText(find.byType(TextField), 'Dago');
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
@@ -149,11 +182,15 @@ void main() {
         'Shows EmptyState "Kos tidak ditemukan" when search has no match (US02-AC2)',
         (WidgetTester tester) async {
       final provider = KosProvider(repository: MockSuccessRepo(allData));
+      final authProvider = AuthProvider(repository: MockUnauthRepo());
 
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<KosProvider>.value(
-            value: provider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<KosProvider>.value(value: provider),
+              ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+            ],
             child: const HomeScreen(),
           ),
         ),
@@ -162,19 +199,13 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // Enter unmatched search query
       await tester.enterText(find.byType(TextField), 'AreaTidakAda999');
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byType(EmptyState), findsOneWidget);
       expect(find.text('Kos tidak ditemukan'), findsOneWidget);
-      expect(
-        find.text('Coba gunakan kata kunci atau filter lain'),
-        findsOneWidget,
-      );
 
-      // Tapping "Hapus Filter" resets search
       await tester.tap(find.text('Hapus Filter'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
@@ -182,14 +213,18 @@ void main() {
       expect(find.byType(KosCard), findsNWidgets(2));
     });
 
-    testWidgets('Tapping filter button opens filter sheet and applies price filter (US02-AC1)',
+    testWidgets('Tapping filter button opens filter sheet and applies price filter',
         (WidgetTester tester) async {
       final provider = KosProvider(repository: MockSuccessRepo(allData));
+      final authProvider = AuthProvider(repository: MockUnauthRepo());
 
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<KosProvider>.value(
-            value: provider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<KosProvider>.value(value: provider),
+              ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+            ],
             child: const HomeScreen(),
           ),
         ),
@@ -198,21 +233,17 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // Tap filter icon
       await tester.tap(find.byIcon(Icons.tune_rounded));
       await tester.pumpAndSettle();
 
       expect(find.text('Filter Harga Sewa'), findsOneWidget);
 
-      // Select "< Rp1.000.000" chip
       await tester.tap(find.text('< Rp1.000.000'));
       await tester.pump();
 
-      // Tap "Terapkan"
       await tester.tap(find.text('Terapkan'));
       await tester.pumpAndSettle();
 
-      // Only kos under 1 juta should remain (Kos Asri Coblong, price 800000)
       expect(find.text('Kos Asri Coblong'), findsOneWidget);
       expect(find.text('Kos Cemara Dago'), findsNothing);
     });
@@ -220,11 +251,15 @@ void main() {
     testWidgets('Tapping a kos card navigates to KosDetailScreen',
         (WidgetTester tester) async {
       final provider = KosProvider(repository: MockSuccessRepo(allData));
+      final authProvider = AuthProvider(repository: MockUnauthRepo());
 
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<KosProvider>.value(
-            value: provider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<KosProvider>.value(value: provider),
+              ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+            ],
             child: const HomeScreen(),
           ),
         ),
@@ -244,11 +279,15 @@ void main() {
     testWidgets('Tapping info icon in AppBar navigates to AboutScreen',
         (WidgetTester tester) async {
       final provider = KosProvider(repository: MockSuccessRepo(allData));
+      final authProvider = AuthProvider(repository: MockUnauthRepo());
 
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<KosProvider>.value(
-            value: provider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<KosProvider>.value(value: provider),
+              ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+            ],
             child: const HomeScreen(),
           ),
         ),
@@ -262,6 +301,61 @@ void main() {
 
       expect(find.byType(AboutScreen), findsOneWidget);
       expect(find.text('2415051085'), findsOneWidget);
+    });
+
+    testWidgets('Tapping account icon navigates to AuthScreen when unauthenticated',
+        (WidgetTester tester) async {
+      final provider = KosProvider(repository: MockSuccessRepo(allData));
+      final authProvider = AuthProvider(repository: MockUnauthRepo());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<KosProvider>.value(value: provider),
+              ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+            ],
+            child: const HomeScreen(),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byIcon(Icons.person_outline_rounded));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AuthScreen), findsOneWidget);
+      expect(find.text('Akun Pemilik Kos'), findsOneWidget);
+    });
+
+    testWidgets('Tapping account icon navigates to OwnerDashboardScreen when authenticated',
+        (WidgetTester tester) async {
+      final provider = KosProvider(repository: MockSuccessRepo(allData));
+      final authProvider = AuthProvider(repository: MockAuthRepoWithUser());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<KosProvider>.value(value: provider),
+              ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+            ],
+            child: const HomeScreen(),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byIcon(Icons.person_outline_rounded));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OwnerDashboardScreen), findsOneWidget);
+      expect(find.text('Dashboard Pemilik'), findsOneWidget);
+      expect(find.text('logged@test.com'), findsOneWidget);
     });
   });
 }

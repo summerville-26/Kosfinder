@@ -32,7 +32,7 @@ Dokumen ini memuat daftar rincian tugas teknis (*tasks*) yang disusun berdasarka
 | ID | Tujuan | Story & AC Terkait | File yang Boleh Diubah | Cara Menguji | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **T07** | Buat `AuthRepository` dan `AuthProvider` untuk registrasi, login, logout, dan pemantauan sesi aktif menggunakan Supabase Auth | US04 (US04-AC1, US04-AC2) | `lib/repositories/auth_repository.dart`, `lib/providers/auth_provider.dart` | Unit test fungsi login, register, dan sign out terhadap skenario sukses dan gagal | `[x] Selesai` |
-| **T08** | Buat `AuthScreen` (form login & register dengan validasi email/password) dan `OwnerDashboardScreen` awal serta hubungkan navigasi dari menu Akun | US04 (US04-AC1, US04-AC2) | `lib/screens/auth_screen.dart`, `lib/screens/owner_dashboard_screen.dart`, `lib/screens/home_screen.dart` | Lakukan pendaftaran akun baru di aplikasi, login dengan kredensial yang dibuat, verifikasi masuk dashboard, lalu lakukan logout | `[ ] Belum Dikerjakan` |
+| **T08** | Buat `AuthScreen` (form login & register dengan validasi email/password) dan `OwnerDashboardScreen` awal serta hubungkan navigasi dari menu Akun | US04 (US04-AC1, US04-AC2) | `lib/screens/auth_screen.dart`, `lib/screens/owner_dashboard_screen.dart`, `lib/screens/home_screen.dart` | Lakukan pendaftaran akun baru di aplikasi, login dengan kredensial yang dibuat, verifikasi masuk dashboard, lalu lakukan logout | `[x] Selesai` |
 
 ---
 
