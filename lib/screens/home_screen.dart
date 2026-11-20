@@ -3,11 +3,13 @@ import 'package:provider/provider.dart';
 import '../models/kos.dart';
 import '../providers/kos_provider.dart';
 import '../repositories/kos_repository.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/kos_card.dart';
+import '../widgets/search_filter_bar.dart';
 import 'about_screen.dart';
 import 'kos_detail_screen.dart';
 
-/// Layar beranda publik untuk menampilkan daftar tempat kos.
+/// Layar beranda publik dengan pencarian nama/area dan filter harga.
 class HomeScreen extends StatelessWidget {
   final KosRepository? repository;
   final ValueChanged<Kos>? onKosSelected;
@@ -53,8 +55,32 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
     });
   }
 
+  void _showFilterSheet(BuildContext context) {
+    final provider = context.read<KosProvider>();
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return _FilterPriceSheet(
+          initialMin: provider.minPrice,
+          initialMax: provider.maxPrice,
+          onApply: (min, max) {
+            provider.setPriceFilter(minPrice: min, maxPrice: max);
+          },
+          onReset: () {
+            provider.setPriceFilter(minPrice: null, maxPrice: null);
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<KosProvider>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Row(
@@ -81,93 +107,270 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
         ],
         elevation: 0,
       ),
-      body: Consumer<KosProvider>(
-        builder: (context, provider, _) {
-          if (provider.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+      body: Column(
+        children: [
+          // Bilah Pencarian & Tombol Filter
+          SearchFilterBar(
+            initialQuery: provider.searchQuery,
+            hasActiveFilter: provider.hasActiveFilter,
+            onSearchChanged: (query) => provider.setSearchQuery(query),
+            onFilterTap: () => _showFilterSheet(context),
+          ),
 
-          if (provider.isError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.wifi_off_rounded,
-                      size: 64,
-                      color: Colors.red.shade400,
+          // Indikator Filter Aktif
+          if (provider.hasActiveFilter)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              alignment: Alignment.centerLeft,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _getFilterLabel(provider),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade700,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      provider.errorMessage ??
-                          'Gagal memuat data. Periksa koneksi internet Anda',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 16),
+                  ),
+                  TextButton(
+                    onPressed: () => provider.clearFilters(),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: () => provider.fetchKos(),
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Coba Lagi'),
-                    ),
-                  ],
-                ),
+                    child: const Text('Reset', style: TextStyle(fontSize: 12)),
+                  ),
+                ],
               ),
-            );
-          }
+            ),
 
-          final list = provider.kosList;
+          // Area Konten Utama
+          Expanded(
+            child: Builder(
+              builder: (context) {
+                if (provider.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-          if (list.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.inbox_outlined, size: 64, color: Colors.grey),
-                    SizedBox(height: 16),
-                    Text(
-                      'Belum ada data kos yang tersedia saat ini.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 15, color: Colors.grey),
+                if (provider.isError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.wifi_off_rounded,
+                            size: 64,
+                            color: Colors.red.shade400,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            provider.errorMessage ??
+                                'Gagal memuat data. Periksa koneksi internet Anda',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: () => provider.fetchKos(),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Coba Lagi'),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-              ),
-            );
-          }
+                  );
+                }
 
-          return RefreshIndicator(
-            onRefresh: () => provider.fetchKos(),
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: list.length,
-              itemBuilder: (context, index) {
-                final kos = list[index];
-                return KosCard(
-                  kos: kos,
-                  onTap: () {
-                    if (widget.onKosSelected != null) {
-                      widget.onKosSelected!(kos);
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => KosDetailScreen(kos: kos),
-                        ),
+                final list = provider.kosList;
+
+                if (list.isEmpty) {
+                  // Kasus Data Kosong karena Pencarian/Filter (US02-AC2)
+                  if (provider.hasActiveFilter) {
+                    return EmptyState(
+                      icon: Icons.search_off_rounded,
+                      title: 'Kos tidak ditemukan',
+                      message: 'Coba gunakan kata kunci atau filter lain',
+                      actionLabel: 'Hapus Filter',
+                      onAction: () => provider.clearFilters(),
+                    );
+                  }
+
+                  // Kasus Data Kosong Umum
+                  return const EmptyState(
+                    icon: Icons.inbox_outlined,
+                    title: 'Belum Ada Kos',
+                    message: 'Belum ada data kos yang tersedia saat ini.',
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: () => provider.fetchKos(),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: list.length,
+                    itemBuilder: (context, index) {
+                      final kos = list[index];
+                      return KosCard(
+                        kos: kos,
+                        onTap: () {
+                          if (widget.onKosSelected != null) {
+                            widget.onKosSelected!(kos);
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => KosDetailScreen(kos: kos),
+                              ),
+                            );
+                          }
+                        },
                       );
-                    }
-                  },
+                    },
+                  ),
                 );
               },
             ),
-          );
-        },
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getFilterLabel(KosProvider provider) {
+    final parts = <String>[];
+    if (provider.searchQuery.isNotEmpty) {
+      parts.add('Cari: "${provider.searchQuery}"');
+    }
+    if (provider.minPrice != null && provider.maxPrice != null) {
+      parts.add('Rp${provider.minPrice} - Rp${provider.maxPrice}');
+    } else if (provider.minPrice != null) {
+      parts.add('>= Rp${provider.minPrice}');
+    } else if (provider.maxPrice != null) {
+      parts.add('<= Rp${provider.maxPrice}');
+    }
+    return parts.join(' | ');
+  }
+}
+
+/// Bottom Sheet untuk memilih rentang filter harga sewa.
+class _FilterPriceSheet extends StatefulWidget {
+  final int? initialMin;
+  final int? initialMax;
+  final void Function(int? min, int? max) onApply;
+  final VoidCallback onReset;
+
+  const _FilterPriceSheet({
+    this.initialMin,
+    this.initialMax,
+    required this.onApply,
+    required this.onReset,
+  });
+
+  @override
+  State<_FilterPriceSheet> createState() => _FilterPriceSheetState();
+}
+
+class _FilterPriceSheetState extends State<_FilterPriceSheet> {
+  int? _min;
+  int? _max;
+
+  @override
+  void initState() {
+    super.initState();
+    _min = widget.initialMin;
+    _max = widget.initialMax;
+  }
+
+  void _selectPreset(int? min, int? max) {
+    setState(() {
+      _min = min;
+      _max = max;
+    });
+  }
+
+  bool _isPresetSelected(int? min, int? max) {
+    return _min == min && _max == max;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Filter Harga Sewa',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('Semua Harga'),
+                selected: _min == null && _max == null,
+                onSelected: (_) => _selectPreset(null, null),
+              ),
+              ChoiceChip(
+                label: const Text('< Rp1.000.000'),
+                selected: _isPresetSelected(null, 1000000),
+                onSelected: (_) => _selectPreset(null, 1000000),
+              ),
+              ChoiceChip(
+                label: const Text('Rp1 Juta - Rp2 Juta'),
+                selected: _isPresetSelected(1000000, 2000000),
+                onSelected: (_) => _selectPreset(1000000, 2000000),
+              ),
+              ChoiceChip(
+                label: const Text('> Rp2.000.000'),
+                selected: _isPresetSelected(2000000, null),
+                onSelected: (_) => _selectPreset(2000000, null),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    widget.onReset();
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Reset'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    widget.onApply(_min, _max);
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Terapkan'),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
