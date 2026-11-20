@@ -32,17 +32,16 @@
 ## 3. Scope Versi 1
 
 ### 3.1 Yang Masuk (In-Scope)
-* **Autentikasi (Supabase Auth)**: Registrasi akun (Email & Password), Login, dan Logout.
+* **Autentikasi (Supabase Auth)**: Registrasi akun (Email & Password), Login, dan Logout bagi Pemilik Kos (opsional bagi Pencari).
 * **Eksplorasi Kos (Pencari Kos)**:
   * Menjelajah daftar kos secara publik tanpa login.
   * Pencarian berbasis teks berdasarkan nama kos atau area/kampus.
-  * Penyaringan (*filter*) berdasarkan kategori tipe kos (**Semua**, **Putra**, **Putri**, **Campur**).
   * Penyaringan (*filter*) berdasarkan harga (urutan harga / rentang harga).
-  * Halaman detail kos: foto (via URL/placeholder), nama, area, harga bulanan, tipe kos, fasilitas, stok kamar (`total_kamar` & `kamar_tersedia`), dan nomor kontak pemilik.
+  * Halaman detail kos: gambar *placeholder* bawaan, nama, area, alamat, harga bulanan, fasilitas, stok kamar (`total_kamar` & `kamar_tersedia`), dan teks nomor kontak pemilik.
   * Badge status **"Penuh"** tetap tampil jika `kamar_tersedia = 0`.
 * **Manajemen Kos (Pemilik Kos)**:
   * Melihat daftar kos yang dimiliki sendiri (*My Kos*).
-  * Formulir Tambah Kos: nama, area, alamat, tipe kos, harga bulanan, fasilitas, `total_kamar`, `kamar_tersedia`, URL gambar, nomor kontak.
+  * Formulir Tambah Kos: nama, area, alamat lengkap, harga bulanan, fasilitas, `total_kamar`, `kamar_tersedia`, dan nomor kontak.
   * Formulir Ubah Kos milik sendiri.
   * Hapus Kos milik sendiri secara permanen (*hard delete*).
 * **Backend & Arsitektur**:
@@ -52,10 +51,11 @@
 ### 3.2 Yang TIDAK Masuk (Out-of-Scope)
 * Pembayaran sewa online / integrasi *payment gateway*.
 * Fitur *in-app chat* / pesan instan di dalam aplikasi.
+* Integrasi tombol eksternal otomatis pemanggil WhatsApp/Dialer.
 * Sistem ulasan (*review*) dan penilaian (*rating* bintang).
 * Rekomendasi pintar / kecerdasan buatan (AI).
 * Verifikasi identitas / KTP pemilik kos.
-* Fitur *upload* berkas foto langsung ke Cloud Storage (menggunakan URL gambar / *placeholder*).
+* Fitur *upload* berkas foto langsung ke Cloud Storage maupun URL foto eksternal (murni menggunakan aset *placeholder* lokal bawaan aplikasi).
 * Peta digital interaktif (*Google Maps / GPS navigation*).
 * Manajemen tagihan sewa, laporan finansial kos, dan pencatatan penghuni kos.
 
@@ -71,7 +71,7 @@
   * *Uji*: Submit form kosong; pesan error validasi wajib muncul di bawah masing-masing input terkait.
 * **Performa**: Waktu muat awal daftar kos maksimal 2 detik pada koneksi internet normal (4G/WiFi kecepatan stabil >= 5 Mbps). Transisi antar-halaman berjalan lancar (minimal 60 fps).
   * *Uji*: Pantau *Flutter DevTools Performance Profiler* untuk memastikan tidak ada *frame drop* berat saat proses *scrolling* list.
-* **Privasi**: Informasi autentikasi (password) dienkripsi oleh Supabase Auth. Data nomor kontak pemilik hanya ditampilkan untuk keperluan komunikasi langsung pencari kos.
+* **Privasi**: Informasi autentikasi (password) dienkripsi oleh Supabase Auth. Data nomor kontak pemilik hanya ditampilkan sebagai teks untuk keperluan informasi pencari kos.
   * *Uji*: Periksa database Supabase; kolom password tidak tersimpan sebagai teks biasa (*plain text*).
 
 ---
@@ -79,10 +79,10 @@
 ## 5. User Stories
 
 * **US01**: Sebagai **Pencari Kos**, saya ingin melihat daftar kos dan detailnya tanpa harus login, agar saya dapat menemukan informasi kos dengan cepat dan tanpa hambatan.
-* **US02**: Sebagai **Pencari Kos**, saya ingin mencari kos berdasarkan nama/area serta memfilter berdasarkan jenis dan harga, agar saya dapat menemukan kos yang sesuai kriteria dan anggaran saya.
+* **US02**: Sebagai **Pencari Kos**, saya ingin mencari kos berdasarkan nama/area serta memfilter berdasarkan harga, agar saya dapat menemukan kos yang sesuai lokasi dan anggaran saya.
 * **US03**: Sebagai **Pencari Kos**, saya ingin melihat tanda "Penuh" pada kos yang tidak memiliki kamar tersisa, agar saya tidak menghabiskan waktu menanyakan kos yang sudah tidak tersedia.
 * **US04**: Sebagai **Pemilik Kos**, saya ingin mendaftar dan masuk ke akun saya, agar saya memiliki hak akses yang aman untuk mengelola data kos milik saya.
-* **US05**: Sebagai **Pemilik Kos**, saya ingin menambahkan data kos baru dengan nomor kontak dan informasi kamar, agar kos saya dapat dilihat dan dihubungi oleh pencari kos.
+* **US05**: Sebagai **Pemilik Kos**, saya ingin menambahkan data kos baru dengan nomor kontak dan informasi kamar, agar kos saya dapat dilihat oleh pencari kos.
 * **US06**: Sebagai **Pemilik Kos**, saya ingin mengubah informasi kos milik saya sendiri, agar informasi ketersediaan kamar, harga, dan fasilitas selalu akurat.
 * **US07**: Sebagai **Pemilik Kos**, saya ingin menghapus kos milik saya secara permanen, agar data kos yang sudah tidak dikelola tidak lagi muncul di aplikasi.
 
@@ -94,7 +94,7 @@
 * **US01-AC1 (Alur Normal Beranda)**:
   * **Given** Pengguna membuka aplikasi tanpa login (*guest*),
   * **When** Beranda berhasil memuat data dari Supabase,
-  * **Then** Ditampilkan daftar kartu kos publik berisi gambar/placeholder, nama kos, area, tipe (Putra/Putri/Campur), harga, dan sisa kamar.
+  * **Then** Ditampilkan daftar kartu kos publik berisi gambar placeholder, nama kos, area, harga, dan sisa kamar.
 * **US01-AC2 (Kasus Koneksi Gagal)**:
   * **Given** Pengguna berada pada kondisi tanpa koneksi internet atau server backend bermasalah,
   * **When** Aplikasi berupaya memuat daftar kos,
@@ -102,13 +102,13 @@
 * **US01-AC3 (Alur Detail Kos)**:
   * **Given** Pengguna melihat daftar kos di beranda,
   * **When** Pengguna mengetuk salah satu kartu kos,
-  * **Then** Halaman detail terbuka menampilkan informasi lengkap (deskripsi, daftar fasilitas, total kamar, sisa kamar, dan tombol untuk menghubungi nomor kontak pemilik).
+  * **Then** Halaman detail terbuka menampilkan gambar placeholder, deskripsi, alamat lengkap, daftar fasilitas, total kamar, sisa kamar, dan informasi teks nomor kontak pemilik.
 
 ### US02: Pencarian & Penyaringan Kos
-* **US02-AC1 (Pencarian & Filter Berhasil)**:
+* **US02-AC1 (Pencarian & Filter Harga Berhasil)**:
   * **Given** Pengguna berada di layar pencarian,
-  * **When** Pengguna mengetik nama/area "Dago" dan memilih chip filter "Putri",
-  * **Then** Daftar langsung diperbarui hanya menampilkan kos yang cocok dengan kata kunci "Dago" dan bertipe "Putri".
+  * **When** Pengguna mengetik nama/area "Dago" dan menerapkan filter rentang harga tertentu,
+  * **Then** Daftar langsung diperbarui hanya menampilkan kos yang berlokasi/bernama "Dago" yang sesuai rentang harga tersebut.
 * **US02-AC2 (Kasus Data Kosong / Empty State)**:
   * **Given** Pengguna memasukkan kata kunci pencarian yang tidak cocok dengan data apa pun (misal: "AreaTidakAda999"),
   * **When** Proses pencarian selesai,
@@ -128,7 +128,7 @@
 * **US04-AC1 (Login Berhasil)**:
   * **Given** Pengguna berada di form login dan memasukkan email serta password terdaftar yang valid,
   * **When** Menekan tombol "Masuk",
-  * **Then** Autentikasi Supabase berhasil, sesi login tersimpan lokal, dan pengguna diarahkan ke antarmuka akun/dashboard pemilik.
+  * **Then** Autentikasi Supabase berhasil, sesi login tersimpan lokal, dan pengguna diarahkan ke antarmuka dashboard pemilik.
 * **US04-AC2 (Login Gagal / Validasi Form Kosong)**:
   * **Given** Pengguna memasukkan format email tidak valid atau password salah,
   * **When** Menekan tombol "Masuk",
@@ -137,9 +137,9 @@
 ### US05: Tambah Kos Baru
 * **US05-AC1 (Tambah Data Berhasil)**:
   * **Given** Pemilik kos telah login dan berada di formulir "Tambah Kos",
-  * **When** Mengisi seluruh field wajib (nama, area, alamat, tipe, harga, total kamar, kamar tersedia, kontak) lalu menekan tombol "Simpan",
+  * **When** Mengisi seluruh field wajib (nama, area, alamat lengkap, harga, total kamar, kamar tersedia, kontak) lalu menekan tombol "Simpan",
   * **Then** Data tersimpan di tabel `kos` Supabase dengan `owner_id` sesuai UID pengguna, dan muncul di daftar "Kos Saya".
-* **US05-AC2 (Validasi Field Kosong & Angka Negatif)**:
+* **US05-AC2 (Validasi Field Kosong & Angka Tidak Valid)**:
   * **Given** Pemilik kos mengisi form dengan mengosongkan nama kos atau memasukkan nilai `kamar_tersedia` lebih besar dari `total_kamar`,
   * **When** Menekan tombol "Simpan",
   * **Then** Data tidak dikirim ke Supabase dan sistem menampilkan peringatan validasi pada kolom yang tidak valid.
@@ -151,7 +151,7 @@
   * **Then** Data di Supabase terbarui dan halaman detail memperlihatkan data yang baru.
 * **US06-AC2 (Pencegahan Modifikasi Kos Milik Orang Lain / RLS Check)**:
   * **Given** Pengguna login sebagai Pemilik A,
-  * **When** Mengirim instruksi pembaruan data terhadap kos dengan `owner_id` milik Pemilik B (misal melalui manipulasi ID request),
+  * **When** Mengirim instruksi pembaruan data terhadap kos dengan `owner_id` milik Pemilik B,
   * **Then** Kebijakan RLS Supabase menolak operasi tersebut dan aplikasi menampilkan pesan kesalahan "Akses Ditolak: Anda tidak memiliki izin untuk mengubah data ini".
 
 ### US07: Hapus Kos
@@ -168,6 +168,5 @@
 
 ## 7. Hal yang Masih Ambigu (Daftar Pertanyaan)
 
-1. **Format Kontak Pemilik**: Apakah format nomor kontak pemilik diwajibkan menggunakan format telepon seluler/WhatsApp Indonesia tertentu (misal: diawali `08` atau `+62`), dan apakah saat tombol kontak ditekan di halaman detail, aplikasi langsung memicu *URL launcher* membuka aplikasi Telepon/WhatsApp?
-2. **Kategori Penentuan Harga (*Filter Price Range*)**: Pada filter harga pencari kos, apakah menggunakan rentang tetap (*fixed chips* seperti `< Rp1 Juta`, `Rp1 - 2 Juta`, `> Rp2 Juta`) atau input rentang angka fleksibel (minimal dan maksimal)?
-3. **Pembedaan Peran Akun Supabase**: Karena pencari kos juga bisa login, apakah peran (*role*) pengguna (`pencari` vs `pemilik`) ditentukan melalui kolom `role` pada tabel profil publik atau melalui metadata autentikasi (`raw_user_meta_data`) saat registrasi?
+1. **Rentang Filter Harga**: Pada penyaringan harga oleh pencari kos, apakah menggunakan tombol rentang harga cepat (misal: `< 1 Juta`, `1 - 2 Juta`, `> 2 Juta`) atau input angka fleksibel (harga minimum dan harga maksimum)?
+2. **Penyimpanan Peran Akun Supabase**: Untuk pencari kos yang memilih untuk registrasi/login, apakah peran disimpan di tabel metadata Auth pengguna atau aplikasi cukup mendeteksi peran berdasarkan ada tidaknya data kos yang dibuat oleh pengguna tersebut?
