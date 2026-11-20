@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kosfinder/models/kos.dart';
 import 'package:kosfinder/providers/kos_provider.dart';
 import 'package:kosfinder/repositories/kos_repository.dart';
+import 'package:kosfinder/screens/about_screen.dart';
 import 'package:kosfinder/screens/home_screen.dart';
+import 'package:kosfinder/screens/kos_detail_screen.dart';
 import 'package:kosfinder/widgets/kos_card.dart';
 import 'package:provider/provider.dart';
 
@@ -48,7 +50,6 @@ void main() {
         ),
       );
 
-      // Pump frames to let post-frame callback and future complete
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -100,6 +101,53 @@ void main() {
         find.text('Belum ada data kos yang tersedia saat ini.'),
         findsOneWidget,
       );
+    });
+
+    testWidgets('Tapping a kos card navigates to KosDetailScreen',
+        (WidgetTester tester) async {
+      final provider = KosProvider(repository: MockSuccessRepo([sampleKos]));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider<KosProvider>.value(
+            value: provider,
+            child: const HomeScreen(),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byType(KosCard));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(KosDetailScreen), findsOneWidget);
+      expect(find.text('Alamat Lengkap'), findsOneWidget);
+      expect(find.text('Jl. Cisitu Indah'), findsOneWidget);
+    });
+
+    testWidgets('Tapping info icon in AppBar navigates to AboutScreen',
+        (WidgetTester tester) async {
+      final provider = KosProvider(repository: MockSuccessRepo([sampleKos]));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider<KosProvider>.value(
+            value: provider,
+            child: const HomeScreen(),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byIcon(Icons.info_outline));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AboutScreen), findsOneWidget);
+      expect(find.text('2415051085'), findsOneWidget);
     });
   });
 }

@@ -4,6 +4,8 @@ import '../models/kos.dart';
 import '../providers/kos_provider.dart';
 import '../repositories/kos_repository.dart';
 import '../widgets/kos_card.dart';
+import 'about_screen.dart';
+import 'kos_detail_screen.dart';
 
 /// Layar beranda publik untuk menampilkan daftar tempat kos.
 class HomeScreen extends StatelessWidget {
@@ -18,7 +20,6 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Membungkus dengan ChangeNotifierProvider mandiri jika belum tersedia di tree
     try {
       Provider.of<KosProvider>(context, listen: false);
       return _HomeScreenView(onKosSelected: onKosSelected);
@@ -66,6 +67,18 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'Tentang Aplikasi',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AboutScreen()),
+              );
+            },
+          ),
+        ],
         elevation: 0,
       ),
       body: Consumer<KosProvider>(
@@ -139,7 +152,16 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
                 return KosCard(
                   kos: kos,
                   onTap: () {
-                    widget.onKosSelected?.call(kos);
+                    if (widget.onKosSelected != null) {
+                      widget.onKosSelected!(kos);
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => KosDetailScreen(kos: kos),
+                        ),
+                      );
+                    }
                   },
                 );
               },
