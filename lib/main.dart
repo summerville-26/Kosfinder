@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/config.dart';
+import 'providers/auth_provider.dart';
+import 'providers/kos_provider.dart';
+import 'repositories/auth_repository.dart';
+import 'repositories/kos_repository.dart';
+import 'screens/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Membaca kredensial dari --dart-define secara aman tanpa hardcoded keys
   if (AppConfig.isConfigured) {
     await Supabase.initialize(
       url: AppConfig.supabaseUrl,
@@ -16,37 +23,38 @@ Future<void> main() async {
   runApp(const KosFinderApp());
 }
 
+/// Root widget aplikasi KosFinder.
 class KosFinderApp extends StatelessWidget {
-  const KosFinderApp({super.key});
+  final KosRepository? kosRepository;
+  final AuthRepository? authRepository;
+
+  const KosFinderApp({
+    super.key,
+    this.kosRepository,
+    this.authRepository,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'KosFinder',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1B5E20)),
-        useMaterial3: true,
-      ),
-      home: const Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.home_work_outlined, size: 64, color: Color(0xFF1B5E20)),
-              SizedBox(height: 16),
-              Text(
-                'KosFinder',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Aplikasi Pencarian & Pengelolaan Kos',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<KosProvider>(
+          create: (_) => KosProvider(repository: kosRepository)..fetchKos(),
         ),
+        ChangeNotifierProvider<AuthProvider>(
+          create: (_) => AuthProvider(repository: authRepository),
+        ),
+      ],
+      child: MaterialApp(
+        title: 'KosFinder',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF1B5E20),
+          ),
+          useMaterial3: true,
+        ),
+        home: const HomeScreen(),
       ),
     );
   }
