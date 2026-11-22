@@ -43,7 +43,7 @@ Dokumen ini memuat daftar rincian tugas teknis (*tasks*) yang disusun berdasarka
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **T09** | Tambahkan fungsi `createKos`, `updateKos`, dan `deleteKos` pada `KosRepository` dan integrasikan ke `KosProvider` dengan penanganan error RLS | US05, US06, US07 (US05-AC1, US06-AC1, US06-AC2, US07-AC1) | `lib/repositories/kos_repository.dart`, `lib/providers/kos_provider.dart` | Unit test eksekusi penambahan, perubahan, dan penghapusan kos terhubung ke Supabase | `[x] Selesai` |
 | **T10** | Buat formulir `KosFormScreen` untuk tambah data kos baru dan tampilkan daftar "Kos Saya" di `OwnerDashboardScreen` | US05 (US05-AC1, US05-AC2) | `lib/screens/kos_form_screen.dart`, `lib/screens/owner_dashboard_screen.dart` | Login sebagai pemilik, buka form Tambah Kos, isi data lengkap, simpan, dan pastikan data muncul di daftar Kos Saya dan publik | `[x] Selesai` |
-| **T11** | Implementasikan mode edit pada `KosFormScreen` dan fitur Hapus Kos (dialog konfirmasi hard delete) pada `OwnerDashboardScreen` | US06, US07 (US06-AC1, US06-AC2, US07-AC1, US07-AC2) | `lib/screens/kos_form_screen.dart`, `lib/screens/owner_dashboard_screen.dart` | Ubah harga atau data kos dan periksa hasil pembaruan; lalu hapus salah satu kos dan verifikasi data hilang permanen | `[ ] Belum Dikerjakan` |
+| **T11** | Implementasikan mode edit pada `KosFormScreen` dan fitur Hapus Kos (dialog konfirmasi hard delete) pada `OwnerDashboardScreen` | US06, US07 (US06-AC1, US06-AC2, US07-AC1, US07-AC2) | `lib/screens/kos_form_screen.dart`, `lib/screens/owner_dashboard_screen.dart` | Ubah harga atau data kos dan periksa hasil pembaruan; lalu hapus salah satu kos dan verifikasi data hilang permanen | `[x] Selesai` |
 
 ---
 

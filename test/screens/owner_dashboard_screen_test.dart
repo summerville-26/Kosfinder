@@ -33,8 +33,11 @@ class MockLoggedInAuthRepo extends AuthRepository {
 
 class MockOwnerKosRepository extends KosRepository {
   final List<Kos> ownerData;
+  String? lastDeletedId;
+  bool shouldFailDelete = false;
 
-  MockOwnerKosRepository([this.ownerData = const []]);
+  MockOwnerKosRepository([List<Kos>? initialData])
+      : ownerData = initialData != null ? List.from(initialData) : [];
 
   @override
   Future<List<Kos>> getAllKos({
@@ -58,7 +61,14 @@ class MockOwnerKosRepository extends KosRepository {
       throw UnimplementedError();
 
   @override
-  Future<void> deleteKos(String id) async => throw UnimplementedError();
+  Future<void> deleteKos(String id) async {
+    if (shouldFailDelete) {
+      throw Exception(
+          'Gagal menghapus data kos. Silakan coba beberapa saat lagi');
+    }
+    lastDeletedId = id;
+    ownerData.removeWhere((k) => k.id == id);
+  }
 }
 
 void main() {
@@ -104,7 +114,7 @@ void main() {
       expect(find.text('Tambah Kos'), findsOneWidget);
     });
 
-    testWidgets('Displays list of owner kos when owner has kos (US05-AC1)',
+    testWidgets('Displays list of owner kos with Ubah and Hapus buttons (US05, US06, US07)',
         (WidgetTester tester) async {
       final authRepo = MockLoggedInAuthRepo();
       final kosRepo = MockOwnerKosRepository([sampleKos]);
@@ -128,7 +138,142 @@ void main() {
       expect(find.text('Kos Juragan Mewah'), findsOneWidget);
       expect(find.text('Dipati Ukur'), findsOneWidget);
       expect(find.text('Sisa 3 kamar'), findsOneWidget);
-      expect(find.text('Belum Ada Kos Terdaftar'), findsNothing);
+      expect(find.text('Ubah'), findsOneWidget);
+      expect(find.text('Hapus'), findsOneWidget);
+    });
+
+    testWidgets('Tapping Ubah navigates to KosFormScreen in edit mode (US06-AC1)',
+        (WidgetTester tester) async {
+      final authRepo = MockLoggedInAuthRepo();
+      final kosRepo = MockOwnerKosRepository([sampleKos]);
+      final authProvider = AuthProvider(repository: authRepo);
+      final kosProvider = KosProvider(repository: kosRepo);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+              ChangeNotifierProvider<KosProvider>.value(value: kosProvider),
+            ],
+            child: const OwnerDashboardScreen(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Ubah'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(KosFormScreen), findsOneWidget);
+      expect(find.text('Ubah Data Kos'), findsOneWidget);
+      expect(find.text('Simpan Perubahan'), findsOneWidget);
+      expect(find.text('Kos Juragan Mewah'), findsOneWidget);
+    });
+
+    testWidgets('Tapping Hapus shows confirmation dialog and canceling keeps kos',
+        (WidgetTester tester) async {
+      final authRepo = MockLoggedInAuthRepo();
+      final kosRepo = MockOwnerKosRepository([sampleKos]);
+      final authProvider = AuthProvider(repository: authRepo);
+      final kosProvider = KosProvider(repository: kosRepo);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+              ChangeNotifierProvider<KosProvider>.value(value: kosProvider),
+            ],
+            child: const OwnerDashboardScreen(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Hapus'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Hapus Kos?'), findsOneWidget);
+      expect(find.textContaining('Apakah Anda yakin ingin menghapus data kos'), findsOneWidget);
+
+      // Tap Batal
+      await tester.tap(find.text('Batal'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Kos Juragan Mewah'), findsOneWidget);
+      expect(kosRepo.lastDeletedId, isNull);
+    });
+
+    testWidgets(
+        'Confirming Hapus deletes kos permanently and shows success snackbar (US07-AC1)',
+        (WidgetTester tester) async {
+      final authRepo = MockLoggedInAuthRepo();
+      final kosRepo = MockOwnerKosRepository([sampleKos]);
+      final authProvider = AuthProvider(repository: authRepo);
+      final kosProvider = KosProvider(repository: kosRepo);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+              ChangeNotifierProvider<KosProvider>.value(value: kosProvider),
+            ],
+            child: const OwnerDashboardScreen(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Hapus'));
+      await tester.pumpAndSettle();
+
+      // Confirm Hapus in dialog
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Hapus'));
+      await tester.pumpAndSettle();
+
+      expect(kosRepo.lastDeletedId, 'k-owner-1');
+      expect(find.text('Data kos berhasil dihapus'), findsOneWidget);
+      expect(find.text('Belum Ada Kos Terdaftar'), findsOneWidget);
+    });
+
+    testWidgets(
+        'Hapus failure shows error message and keeps kos (US07-AC2)',
+        (WidgetTester tester) async {
+      final authRepo = MockLoggedInAuthRepo();
+      final kosRepo = MockOwnerKosRepository([sampleKos])..shouldFailDelete = true;
+      final authProvider = AuthProvider(repository: authRepo);
+      final kosProvider = KosProvider(repository: kosRepo);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+              ChangeNotifierProvider<KosProvider>.value(value: kosProvider),
+            ],
+            child: const OwnerDashboardScreen(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Hapus'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Hapus'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Gagal menghapus data kos. Silakan coba beberapa saat lagi'),
+        findsOneWidget,
+      );
+      expect(find.text('Kos Juragan Mewah'), findsOneWidget);
     });
 
     testWidgets('Tapping Tambah Kos navigates to KosFormScreen',

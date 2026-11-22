@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../models/kos.dart';
 import '../providers/auth_provider.dart';
 import '../providers/kos_provider.dart';
 import '../repositories/auth_repository.dart';
@@ -88,6 +89,79 @@ class _OwnerDashboardViewState extends State<_OwnerDashboardView> {
     if (created == true && mounted) {
       _loadOwnerKos();
     }
+  }
+
+  Future<void> _navigateToEditKos(Kos kos) async {
+    final authProvider = context.read<AuthProvider>();
+    final kosProvider = context.read<KosProvider>();
+
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+            ChangeNotifierProvider<KosProvider>.value(value: kosProvider),
+          ],
+          child: KosFormScreen(initialKos: kos),
+        ),
+      ),
+    );
+
+    if (updated == true && mounted) {
+      _loadOwnerKos();
+    }
+  }
+
+  void _confirmDeleteKos(BuildContext context, Kos kos) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Hapus Kos?'),
+          content: Text(
+            'Apakah Anda yakin ingin menghapus data kos "${kos.name}" secara permanen? Data yang dihapus tidak dapat dipulihkan.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade600,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                final kosProvider = context.read<KosProvider>();
+                final success = await kosProvider.deleteKos(kos.id);
+                if (!context.mounted) return;
+
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Data kos berhasil dihapus'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } else {
+                  final errorMsg = kosProvider.errorMessage ??
+                      'Gagal menghapus data kos. Silakan coba beberapa saat lagi';
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(errorMsg),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Hapus'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _confirmSignOut(BuildContext context) {
@@ -380,6 +454,32 @@ class _OwnerDashboardViewState extends State<_OwnerDashboardView> {
                     color: Theme.of(context).primaryColor,
                     fontSize: 14,
                   ),
+                ),
+                const Divider(height: 24),
+                // Tombol Aksi: Ubah & Hapus (T11)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => _navigateToEditKos(kos),
+                      icon: const Icon(Icons.edit_outlined, size: 16),
+                      label: const Text('Ubah'),
+                      style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _confirmDeleteKos(context, kos),
+                      icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                      label: const Text('Hapus'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red.shade700,
+                        side: BorderSide(color: Colors.red.shade200),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

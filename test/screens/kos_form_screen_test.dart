@@ -19,7 +19,11 @@ class MockFormAuthRepository extends AuthRepository {
 
 class MockFormKosRepository extends KosRepository {
   Map<String, dynamic>? lastCreatedData;
+  Map<String, dynamic>? lastUpdatedData;
+  String? lastUpdatedId;
   bool shouldFail = false;
+  bool shouldFailUpdate = false;
+  bool isRlsError = false;
 
   @override
   Future<List<Kos>> getAllKos({
@@ -53,8 +57,29 @@ class MockFormKosRepository extends KosRepository {
   }
 
   @override
-  Future<Kos> updateKos(String id, Map<String, dynamic> data) async =>
-      throw UnimplementedError();
+  Future<Kos> updateKos(String id, Map<String, dynamic> data) async {
+    if (isRlsError) {
+      throw Exception(
+          'Akses Ditolak: Anda tidak memiliki izin untuk mengubah data ini');
+    }
+    if (shouldFailUpdate) {
+      throw Exception('Gagal memperbarui data kos');
+    }
+    lastUpdatedId = id;
+    lastUpdatedData = data;
+    return Kos(
+      id: id,
+      ownerId: data['owner_id'] as String? ?? 'owner-123',
+      name: data['name'] as String? ?? '',
+      area: data['area'] as String? ?? '',
+      address: data['address'] as String? ?? '',
+      price: (data['price'] as int?) ?? 0,
+      totalRooms: (data['total_rooms'] as int?) ?? 0,
+      availableRooms: (data['available_rooms'] as int?) ?? 0,
+      facilities: List<String>.from(data['facilities'] as Iterable? ?? []),
+      contactNumber: data['contact_number'] as String? ?? '',
+    );
+  }
 
   @override
   Future<void> deleteKos(String id) async => throw UnimplementedError();
@@ -69,6 +94,19 @@ void main() {
       aud: 'authenticated',
       createdAt: '2026-11-20T00:00:00Z',
       email: 'owner@test.com',
+    );
+
+    final existingKos = Kos(
+      id: 'kos-edit-1',
+      ownerId: 'owner-123',
+      name: 'Kos Asli Sebelum Diubah',
+      area: 'Dago Atas',
+      address: 'Jl. Dago Atas No. 99',
+      price: 1500000,
+      totalRooms: 10,
+      availableRooms: 5,
+      facilities: const ['Wi-Fi', 'AC'],
+      contactNumber: '081234567890',
     );
 
     Widget createTestableWidget({
@@ -239,6 +277,83 @@ void main() {
       expect(kosRepo.lastCreatedData!['available_rooms'], 4);
       expect(kosRepo.lastCreatedData!['facilities'], contains('Wi-Fi'));
       expect(kosRepo.lastCreatedData!['contact_number'], '081234567890');
+    });
+
+    // === T11: Mode Edit Tests (US06) ===
+
+    testWidgets('Edit mode renders initial values and updates successfully (US06-AC1)',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final authRepo = MockFormAuthRepository(testUser);
+      final kosRepo = MockFormKosRepository();
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          authProvider: AuthProvider(repository: authRepo),
+          kosProvider: KosProvider(repository: kosRepo),
+          initialKos: existingKos,
+        ),
+      );
+
+      // Verify edit mode title and button
+      expect(find.text('Ubah Data Kos'), findsOneWidget);
+      expect(find.text('Simpan Perubahan'), findsOneWidget);
+
+      // Verify initial values are populated
+      expect(find.text('Kos Asli Sebelum Diubah'), findsOneWidget);
+      expect(find.text('Dago Atas'), findsOneWidget);
+      expect(find.text('1500000'), findsOneWidget);
+
+      // Modify price and available rooms
+      await tester.enterText(
+          find.widgetWithText(TextFormField, 'Harga Sewa per Bulan (Rp) *'), '1800000');
+      await tester.enterText(
+          find.widgetWithText(TextFormField, 'Kamar Tersedia *'), '2');
+
+      // Submit changes
+      await tester.ensureVisible(find.text('Simpan Perubahan'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Simpan Perubahan'));
+      await tester.pumpAndSettle();
+
+      expect(kosRepo.lastUpdatedId, 'kos-edit-1');
+      expect(kosRepo.lastUpdatedData, isNotNull);
+      expect(kosRepo.lastUpdatedData!['price'], 1800000);
+      expect(kosRepo.lastUpdatedData!['available_rooms'], 2);
+    });
+
+    testWidgets(
+        'Edit mode displays RLS violation error message when forbidden (US06-AC2)',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final authRepo = MockFormAuthRepository(testUser);
+      final kosRepo = MockFormKosRepository()..isRlsError = true;
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          authProvider: AuthProvider(repository: authRepo),
+          kosProvider: KosProvider(repository: kosRepo),
+          initialKos: existingKos,
+        ),
+      );
+
+      await tester.ensureVisible(find.text('Simpan Perubahan'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Simpan Perubahan'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Akses Ditolak: Anda tidak memiliki izin untuk mengubah data ini'),
+        findsOneWidget,
+      );
     });
   });
 }
