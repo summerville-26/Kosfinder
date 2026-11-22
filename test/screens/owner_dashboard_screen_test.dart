@@ -34,6 +34,8 @@ class MockLoggedInAuthRepo extends AuthRepository {
 class MockOwnerKosRepository extends KosRepository {
   final List<Kos> ownerData;
   String? lastDeletedId;
+  String? lastUpdatedId;
+  Map<String, dynamic>? lastUpdatedData;
   bool shouldFailDelete = false;
 
   MockOwnerKosRepository([List<Kos>? initialData])
@@ -57,8 +59,21 @@ class MockOwnerKosRepository extends KosRepository {
       throw UnimplementedError();
 
   @override
-  Future<Kos> updateKos(String id, Map<String, dynamic> data) async =>
-      throw UnimplementedError();
+  Future<Kos> updateKos(String id, Map<String, dynamic> data) async {
+    lastUpdatedId = id;
+    lastUpdatedData = data;
+    final index = ownerData.indexWhere((k) => k.id == id);
+    if (index != -1) {
+      final updated = ownerData[index].copyWith(
+        availableRooms: data['available_rooms'] != null
+            ? (data['available_rooms'] as num).toInt()
+            : ownerData[index].availableRooms,
+      );
+      ownerData[index] = updated;
+      return updated;
+    }
+    throw Exception('Kos not found');
+  }
 
   @override
   Future<void> deleteKos(String id) async {
@@ -114,7 +129,8 @@ void main() {
       expect(find.text('Tambah Kos'), findsOneWidget);
     });
 
-    testWidgets('Displays list of owner kos with Ubah and Hapus buttons (US05, US06, US07)',
+    testWidgets(
+        'Displays list of owner kos with Ubah and Hapus buttons (US05, US06, US07)',
         (WidgetTester tester) async {
       final authRepo = MockLoggedInAuthRepo();
       final kosRepo = MockOwnerKosRepository([sampleKos]);
@@ -140,6 +156,86 @@ void main() {
       expect(find.text('Sisa 3 kamar'), findsOneWidget);
       expect(find.text('Ubah'), findsOneWidget);
       expect(find.text('Hapus'), findsOneWidget);
+      expect(find.text('3 / 12'), findsOneWidget);
+    });
+
+    testWidgets(
+        'Quick update room count with [+] and [-] buttons (T13, US06-AC1)',
+        (WidgetTester tester) async {
+      final authRepo = MockLoggedInAuthRepo();
+      final kosRepo = MockOwnerKosRepository([sampleKos]);
+      final authProvider = AuthProvider(repository: authRepo);
+      final kosProvider = KosProvider(repository: kosRepo);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+              ChangeNotifierProvider<KosProvider>.value(value: kosProvider),
+            ],
+            child: const OwnerDashboardScreen(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Tap [+] to increment rooms (from 3 to 4)
+      await tester.tap(find.byIcon(Icons.add_circle_outline));
+      await tester.pumpAndSettle();
+
+      expect(kosRepo.lastUpdatedData?['available_rooms'], 4);
+      expect(find.text('4 / 12'), findsOneWidget);
+      expect(find.text('Sisa 4 kamar'), findsOneWidget);
+
+      // Tap [-] to decrement rooms (from 4 to 3)
+      await tester.tap(find.byIcon(Icons.remove_circle_outline));
+      await tester.pumpAndSettle();
+
+      expect(kosRepo.lastUpdatedData?['available_rooms'], 3);
+      expect(find.text('3 / 12'), findsOneWidget);
+      expect(find.text('Sisa 3 kamar'), findsOneWidget);
+    });
+
+    testWidgets(
+        'Quick update "Set Penuh" changes available rooms to 0 and shows "Penuh" badge (T13, US03-AC1, US06-AC1)',
+        (WidgetTester tester) async {
+      final authRepo = MockLoggedInAuthRepo();
+      final kosRepo = MockOwnerKosRepository([sampleKos]);
+      final authProvider = AuthProvider(repository: authRepo);
+      final kosProvider = KosProvider(repository: kosRepo);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+              ChangeNotifierProvider<KosProvider>.value(value: kosProvider),
+            ],
+            child: const OwnerDashboardScreen(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Tap "Set Penuh"
+      await tester.tap(find.text('Set Penuh'));
+      await tester.pumpAndSettle();
+
+      expect(kosRepo.lastUpdatedData?['available_rooms'], 0);
+      expect(find.text('Penuh'), findsOneWidget);
+      expect(find.text('0 / 12'), findsOneWidget);
+      expect(find.text('Buka 1 Kamar'), findsOneWidget);
+
+      // Now tap "Buka 1 Kamar" to reopen
+      await tester.tap(find.text('Buka 1 Kamar'));
+      await tester.pumpAndSettle();
+
+      expect(kosRepo.lastUpdatedData?['available_rooms'], 1);
+      expect(find.text('Sisa 1 kamar'), findsOneWidget);
+      expect(find.text('1 / 12'), findsOneWidget);
     });
 
     testWidgets('Tapping Ubah navigates to KosFormScreen in edit mode (US06-AC1)',

@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../providers/kos_provider.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/kos_repository.dart';
+import '../widgets/kos_card.dart';
 import 'kos_form_screen.dart';
 
 /// Layar beranda dashboard bagi pemilik kos yang telah masuk/login.
@@ -110,6 +111,41 @@ class _OwnerDashboardViewState extends State<_OwnerDashboardView> {
 
     if (updated == true && mounted) {
       _loadOwnerKos();
+    }
+  }
+
+  /// Pembaruan cepat jumlah sisa kamar kos (T13).
+  Future<void> _quickUpdateRooms(Kos kos, int newAvailableRooms) async {
+    if (newAvailableRooms < 0 || newAvailableRooms > kos.totalRooms) return;
+
+    final kosProvider = context.read<KosProvider>();
+    final success = await kosProvider.updateKos(
+      kos.id,
+      {'available_rooms': newAvailableRooms},
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(newAvailableRooms == 0
+              ? 'Status kos diubah menjadi "Penuh"'
+              : 'Sisa kamar berhasil diperbarui menjadi $newAvailableRooms'),
+          duration: const Duration(seconds: 2),
+          backgroundColor:
+              newAvailableRooms == 0 ? Colors.orange.shade800 : Colors.green,
+        ),
+      );
+    } else {
+      final errorMsg =
+          kosProvider.errorMessage ?? 'Gagal memperbarui sisa kamar';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -412,29 +448,9 @@ class _OwnerDashboardViewState extends State<_OwnerDashboardView> {
                         ),
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: kos.isFull
-                            ? Colors.red.shade50
-                            : Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        kos.isFull
-                            ? 'Penuh'
-                            : 'Sisa ${kos.availableRooms} kamar',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: kos.isFull
-                              ? Colors.red.shade800
-                              : Colors.green.shade800,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                    const SizedBox(width: 8),
+                    KosAvailabilityBadge(
+                      availableRooms: kos.availableRooms,
                     ),
                   ],
                 ),
@@ -453,6 +469,75 @@ class _OwnerDashboardViewState extends State<_OwnerDashboardView> {
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).primaryColor,
                     fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Panel Pembaruan Cepat Sisa Kamar (T13)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text(
+                        'Kamar:',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.remove_circle_outline, size: 20),
+                        tooltip: 'Kurangi sisa kamar',
+                        onPressed: kos.availableRooms > 0
+                            ? () => _quickUpdateRooms(kos, kos.availableRooms - 1)
+                            : null,
+                      ),
+                      Text(
+                        '${kos.availableRooms} / ${kos.totalRooms}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: kos.isFull
+                              ? Colors.red.shade700
+                              : Colors.black87,
+                        ),
+                      ),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.add_circle_outline, size: 20),
+                        tooltip: 'Tambah sisa kamar',
+                        onPressed: kos.availableRooms < kos.totalRooms
+                            ? () => _quickUpdateRooms(kos, kos.availableRooms + 1)
+                            : null,
+                      ),
+                      const Spacer(),
+                      if (!kos.isFull)
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            foregroundColor: Colors.red.shade700,
+                          ),
+                          onPressed: () => _quickUpdateRooms(kos, 0),
+                          child: const Text('Set Penuh'),
+                        )
+                      else
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            foregroundColor: Colors.green.shade700,
+                          ),
+                          onPressed: kos.totalRooms > 0
+                              ? () => _quickUpdateRooms(kos, 1)
+                              : null,
+                          child: const Text('Buka 1 Kamar'),
+                        ),
+                    ],
                   ),
                 ),
                 const Divider(height: 24),
