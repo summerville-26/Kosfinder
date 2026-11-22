@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/kos.dart';
+import '../widgets/kos_card.dart';
 
 /// Layar rincian informasi detail tempat kos.
 class KosDetailScreen extends StatelessWidget {
@@ -15,8 +16,6 @@ class KosDetailScreen extends StatelessWidget {
       symbol: 'Rp',
       decimalDigits: 0,
     );
-
-    final isFull = kos.isFull;
 
     return Scaffold(
       appBar: AppBar(
@@ -59,7 +58,7 @@ class KosDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Nama, Area, dan Badge Status Kamar
+                  // Nama, Area, dan Badge Status Kamar (US03)
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -98,32 +97,11 @@ class KosDetailScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isFull
-                              ? Colors.red.shade50
-                              : Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isFull
-                                ? Colors.red.shade200
-                                : Colors.green.shade200,
-                          ),
-                        ),
-                        child: Text(
-                          isFull ? 'Penuh' : 'Sisa ${kos.availableRooms} kamar',
-                          style: TextStyle(
-                            color: isFull
-                                ? Colors.red.shade800
-                                : Colors.green.shade800,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
+                      const SizedBox(width: 12),
+                      // Badge Ketersediaan Kamar (US03)
+                      KosAvailabilityBadge(
+                        availableRooms: kos.availableRooms,
+                        isLarge: true,
                       ),
                     ],
                   ),
@@ -241,7 +219,7 @@ class KosDetailScreen extends StatelessWidget {
                               const SizedBox(height: 4),
                               SelectableText(
                                 kos.contactNumber.isNotEmpty
-                                    ? kos.contactNumber
+                                     ? kos.contactNumber
                                     : 'Nomor kontak tidak tersedia',
                                 style: const TextStyle(
                                   fontSize: 16,

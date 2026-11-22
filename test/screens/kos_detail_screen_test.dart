@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kosfinder/models/kos.dart';
 import 'package:kosfinder/screens/kos_detail_screen.dart';
+import 'package:kosfinder/widgets/kos_card.dart';
 
 void main() {
   group('KosDetailScreen Widget Tests', () {
@@ -18,7 +19,7 @@ void main() {
       contactNumber: '081987654321',
     );
 
-    testWidgets('Renders all kos details correctly (US01-AC3)',
+    testWidgets('Renders all kos details correctly with remaining rooms badge (US01-AC3, US03-AC2)',
         (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -31,6 +32,7 @@ void main() {
       expect(find.text('Jl. Dipatiukur No. 15 Bandung'), findsOneWidget);
       expect(find.textContaining('1.750.000'), findsOneWidget);
       expect(find.text('Sisa 3 kamar'), findsOneWidget);
+      expect(find.byType(KosAvailabilityBadge), findsOneWidget);
       expect(
         find.text('Total Kamar: 8 | Kamar Tersedia: 3'),
         findsOneWidget,
@@ -41,7 +43,7 @@ void main() {
       expect(find.text('081987654321'), findsOneWidget);
     });
 
-    testWidgets('Renders "Penuh" badge when availableRooms is 0',
+    testWidgets('Renders "Penuh" badge when availableRooms is 0 without error (US03-AC1)',
         (WidgetTester tester) async {
       final fullKos = sampleKos.copyWith(availableRooms: 0);
 
@@ -52,6 +54,7 @@ void main() {
       );
 
       expect(find.text('Penuh'), findsOneWidget);
+      expect(find.byType(KosAvailabilityBadge), findsOneWidget);
       expect(
         find.text('Total Kamar: 8 | Kamar Tersedia: 0'),
         findsOneWidget,

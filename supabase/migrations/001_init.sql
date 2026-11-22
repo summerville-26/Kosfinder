@@ -24,27 +24,42 @@ CREATE INDEX IF NOT EXISTS idx_kos_owner_id ON public.kos (owner_id);
 CREATE INDEX IF NOT EXISTS idx_kos_area ON public.kos (area);
 CREATE INDEX IF NOT EXISTS idx_kos_price ON public.kos (price);
 
--- 3. Aktifkan Row Level Security (RLS)
+-- 3. Berikan Hak Akses Tabel ke Role Supabase (anon & authenticated)
+-- Tanpa ini, PostgreSQL akan memblokir request dengan error: permission denied for table kos
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT ALL ON TABLE public.kos TO anon, authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+
+-- 4. Aktifkan Row Level Security (RLS)
 ALTER TABLE public.kos ENABLE ROW LEVEL SECURITY;
 
--- 4. Kebijakan RLS (Security Policies)
+-- 5. Bersihkan Kebijakan Lama jika ada
+DROP POLICY IF EXISTS "Public users can view all kos" ON public.kos;
+DROP POLICY IF EXISTS "Authenticated owners can insert their own kos" ON public.kos;
+DROP POLICY IF EXISTS "Owners can update their own kos" ON public.kos;
+DROP POLICY IF EXISTS "Owners can delete their own kos" ON public.kos;
+
+-- 6. Kebijakan RLS (Security Policies)
 
 -- A. SELECT: Publik (anonim & terautentikasi) dapat melihat seluruh data kos
 CREATE POLICY "Public users can view all kos"
 ON public.kos
 FOR SELECT
+TO anon, authenticated
 USING (true);
 
--- B. INSERT: Hanya pengguna yang sudah login yang dapat menambahkan kos miliknya sendiri
+-- B. INSERT: Hanya pemilik kos yang login yang dapat menambahkan kos miliknya
 CREATE POLICY "Authenticated owners can insert their own kos"
 ON public.kos
 FOR INSERT
+TO authenticated
 WITH CHECK (auth.uid() = owner_id);
 
 -- C. UPDATE: Hanya pemilik kos terkait yang dapat memperbarui datanya
 CREATE POLICY "Owners can update their own kos"
 ON public.kos
 FOR UPDATE
+TO authenticated
 USING (auth.uid() = owner_id)
 WITH CHECK (auth.uid() = owner_id);
 
@@ -52,4 +67,5 @@ WITH CHECK (auth.uid() = owner_id);
 CREATE POLICY "Owners can delete their own kos"
 ON public.kos
 FOR DELETE
+TO authenticated
 USING (auth.uid() = owner_id);

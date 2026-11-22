@@ -5,7 +5,7 @@ import 'package:kosfinder/widgets/kos_card.dart';
 
 void main() {
   group('KosCard Widget Tests', () {
-    testWidgets('Renders kos name, area, price, and rooms available',
+    testWidgets('Renders kos name, area, price, and rooms available (US03-AC2)',
         (WidgetTester tester) async {
       final kos = Kos(
         id: '1',
@@ -39,12 +39,14 @@ void main() {
       expect(find.text('Dago Atas'), findsOneWidget);
       expect(find.text('Sisa 3 kamar'), findsOneWidget);
       expect(find.textContaining('1.350.000'), findsOneWidget);
+      expect(find.byType(KosAvailabilityBadge), findsOneWidget);
 
       await tester.tap(find.byType(KosCard));
       expect(tapped, isTrue);
     });
 
-    testWidgets('Renders "Penuh" badge when availableRooms is 0',
+    testWidgets(
+        'Renders "Penuh" badge when availableRooms is 0 without hiding kos (US03-AC1)',
         (WidgetTester tester) async {
       final kos = Kos(
         id: '2',
@@ -70,6 +72,27 @@ void main() {
       expect(find.text('Kos Mawar Penuh'), findsOneWidget);
       expect(find.text('Penuh'), findsOneWidget);
       expect(find.textContaining('900.000'), findsOneWidget);
+      expect(find.byType(KosAvailabilityBadge), findsOneWidget);
+    });
+
+    testWidgets('KosAvailabilityBadge standalone test for positive and zero rooms',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                KosAvailabilityBadge(availableRooms: 5),
+                KosAvailabilityBadge(availableRooms: 0),
+                KosAvailabilityBadge(availableRooms: -1),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Sisa 5 kamar'), findsOneWidget);
+      expect(find.text('Penuh'), findsNWidgets(2));
     });
   });
 }

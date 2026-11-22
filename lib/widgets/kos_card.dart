@@ -2,6 +2,47 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/kos.dart';
 
+/// Komponen badge visual ketersediaan kamar kos ("Sisa X kamar" vs "Penuh") (US03).
+class KosAvailabilityBadge extends StatelessWidget {
+  final int availableRooms;
+  final bool isLarge;
+
+  const KosAvailabilityBadge({
+    super.key,
+    required this.availableRooms,
+    this.isLarge = false,
+  });
+
+  bool get isFull => availableRooms <= 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = isFull ? Colors.red.shade50 : Colors.green.shade50;
+    final borderColor = isFull ? Colors.red.shade200 : Colors.green.shade200;
+    final textColor = isFull ? Colors.red.shade800 : Colors.green.shade800;
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isLarge ? 10 : 8,
+        vertical: isLarge ? 6 : 4,
+      ),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor),
+      ),
+      child: Text(
+        isFull ? 'Penuh' : 'Sisa $availableRooms kamar',
+        style: TextStyle(
+          color: textColor,
+          fontSize: isLarge ? 13 : 12,
+          fontWeight: isLarge ? FontWeight.bold : FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
 /// Kartu tampilan ringkas kos untuk daftar beranda.
 class KosCard extends StatelessWidget {
   final Kos kos;
@@ -20,8 +61,6 @@ class KosCard extends StatelessWidget {
       symbol: 'Rp',
       decimalDigits: 0,
     );
-
-    final isFull = kos.isFull;
 
     return Card(
       elevation: 1.5,
@@ -79,30 +118,10 @@ class KosCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isFull ? Colors.red.shade50 : Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isFull
-                                ? Colors.red.shade200
-                                : Colors.green.shade200,
-                          ),
-                        ),
-                        child: Text(
-                          isFull ? 'Penuh' : 'Sisa ${kos.availableRooms} kamar',
-                          style: TextStyle(
-                            color: isFull
-                                ? Colors.red.shade800
-                                : Colors.green.shade800,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      const SizedBox(width: 8),
+                      // Badge Ketersediaan Kamar (US03)
+                      KosAvailabilityBadge(
+                        availableRooms: kos.availableRooms,
                       ),
                     ],
                   ),
