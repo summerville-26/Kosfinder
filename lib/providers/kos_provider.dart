@@ -19,6 +19,9 @@ class KosProvider extends ChangeNotifier {
   int? _minPrice;
   int? _maxPrice;
 
+  /// Daftar kos milik pemilik yang sedang login.
+  List<Kos> _ownerKosList = [];
+
   KosStateStatus get status => _status;
   List<Kos> get kosList => _kosList;
   String? get errorMessage => _errorMessage;
@@ -26,6 +29,8 @@ class KosProvider extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   int? get minPrice => _minPrice;
   int? get maxPrice => _maxPrice;
+
+  List<Kos> get ownerKosList => _ownerKosList;
 
   bool get isLoading => _status == KosStateStatus.loading;
   bool get isError => _status == KosStateStatus.error;
@@ -77,5 +82,112 @@ class KosProvider extends ChangeNotifier {
     _minPrice = null;
     _maxPrice = null;
     await fetchKos();
+  }
+
+  /// Mengambil daftar kos milik pemilik tertentu berdasarkan [ownerId].
+  Future<void> fetchOwnerKos(String ownerId) async {
+    _status = KosStateStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _ownerKosList = await _repository.getKosByOwner(ownerId);
+      _status = KosStateStatus.success;
+    } catch (_) {
+      _status = KosStateStatus.error;
+      _errorMessage = 'Gagal memuat data kos Anda';
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  /// Menambahkan kos baru ke Supabase (US05-AC1).
+  ///
+  /// Mengembalikan `true` jika berhasil, `false` jika gagal.
+  /// Menyimpan pesan error yang sesuai termasuk pelanggaran RLS.
+  Future<bool> createKos(Map<String, dynamic> data) async {
+    _status = KosStateStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final newKos = await _repository.createKos(data);
+      _ownerKosList = [newKos, ..._ownerKosList];
+      _status = KosStateStatus.success;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _status = KosStateStatus.error;
+      _errorMessage = _extractMessage(e);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Memperbarui data kos berdasarkan [id] (US06-AC1).
+  ///
+  /// Mengembalikan `true` jika berhasil, `false` jika gagal.
+  /// Menangani error RLS dengan pesan khusus (US06-AC2).
+  Future<bool> updateKos(String id, Map<String, dynamic> data) async {
+    _status = KosStateStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final updated = await _repository.updateKos(id, data);
+      // Perbarui item di ownerKosList
+      _ownerKosList = _ownerKosList.map((k) {
+        return k.id == id ? updated : k;
+      }).toList();
+      // Perbarui juga di kosList publik jika ada
+      _kosList = _kosList.map((k) {
+        return k.id == id ? updated : k;
+      }).toList();
+      _status = KosStateStatus.success;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _status = KosStateStatus.error;
+      _errorMessage = _extractMessage(e);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Menghapus kos berdasarkan [id] secara permanen (US07-AC1).
+  ///
+  /// Mengembalikan `true` jika berhasil, `false` jika gagal.
+  /// Menangani error koneksi dengan pesan khusus (US07-AC2).
+  Future<bool> deleteKos(String id) async {
+    _status = KosStateStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.deleteKos(id);
+      _ownerKosList = _ownerKosList.where((k) => k.id != id).toList();
+      _kosList = _kosList.where((k) => k.id != id).toList();
+      _status = KosStateStatus.success;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _status = KosStateStatus.error;
+      _errorMessage = _extractMessage(e);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Mengekstrak pesan error dari [Exception].
+  String _extractMessage(Object e) {
+    if (e is Exception) {
+      final msg = e.toString();
+      // Exception: message → hapus prefix "Exception: "
+      if (msg.startsWith('Exception: ')) {
+        return msg.substring(11);
+      }
+      return msg;
+    }
+    return e.toString();
   }
 }

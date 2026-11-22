@@ -37,6 +37,22 @@ class MockSuccessRepo extends KosRepository {
       return true;
     }).toList();
   }
+
+  @override
+  Future<List<Kos>> getKosByOwner(String ownerId) async =>
+      data.where((k) => k.ownerId == ownerId).toList();
+
+  @override
+  Future<Kos> createKos(Map<String, dynamic> data) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<Kos> updateKos(String id, Map<String, dynamic> data) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> deleteKos(String id) async =>
+      throw UnimplementedError();
 }
 
 class MockErrorRepo extends KosRepository {
@@ -46,6 +62,22 @@ class MockErrorRepo extends KosRepository {
     int? minPrice,
     int? maxPrice,
   }) async =>
+      throw Exception('Network error');
+
+  @override
+  Future<List<Kos>> getKosByOwner(String ownerId) async =>
+      throw Exception('Network error');
+
+  @override
+  Future<Kos> createKos(Map<String, dynamic> data) async =>
+      throw Exception('Network error');
+
+  @override
+  Future<Kos> updateKos(String id, Map<String, dynamic> data) async =>
+      throw Exception('Network error');
+
+  @override
+  Future<void> deleteKos(String id) async =>
       throw Exception('Network error');
 }
 
