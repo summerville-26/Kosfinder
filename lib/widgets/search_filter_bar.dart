@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import '../core/theme.dart';
 
-/// Bilah pencarian teks nama/area dan tombol filter harga sewa.
+/// Bilah pencarian teks nama/area dan tombol filter harga sewa dengan desain Modern Emerald.
 class SearchFilterBar extends StatefulWidget {
   final String initialQuery;
   final bool hasActiveFilter;
@@ -53,62 +54,83 @@ class _SearchFilterBarState extends State<SearchFilterBar> {
       child: Row(
         children: [
           Expanded(
-            child: TextField(
-              controller: _controller,
-              onChanged: widget.onSearchChanged,
-              decoration: InputDecoration(
-                hintText: 'Cari nama kos atau area...',
-                hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-                prefixIcon: const Icon(Icons.search_rounded, size: 22),
-                suffixIcon: _controller.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear_rounded, size: 20),
-                        onPressed: () {
-                          _controller.clear();
-                          widget.onSearchChanged('');
-                        },
-                      )
-                    : null,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: AppTheme.softShadow,
+                border: Border.all(color: AppColors.border),
+              ),
+              child: TextField(
+                controller: _controller,
+                onChanged: widget.onSearchChanged,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
                 ),
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: Theme.of(context).colorScheme.primary,
-                    width: 1.5,
+                decoration: InputDecoration(
+                  hintText: 'Cari nama kos atau area...',
+                  hintStyle: const TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 14,
                   ),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    size: 22,
+                    color: AppColors.primary,
+                  ),
+                  suffixIcon: _controller.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(
+                            Icons.clear_rounded,
+                            size: 20,
+                            color: AppColors.textMuted,
+                          ),
+                          onPressed: () {
+                            _controller.clear();
+                            widget.onSearchChanged('');
+                          },
+                        )
+                      : null,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  filled: false,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Material(
             color: widget.hasActiveFilter
-                ? Theme.of(context).colorScheme.primary
-                : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(12),
+                ? AppColors.primary
+                : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            elevation: 0,
             child: InkWell(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               onTap: widget.onFilterTap,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
+              child: Container(
+                padding: const EdgeInsets.all(13),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: widget.hasActiveFilter
+                        ? AppColors.primary
+                        : AppColors.border,
+                  ),
+                  boxShadow: widget.hasActiveFilter ? null : AppTheme.softShadow,
+                ),
                 child: Icon(
                   Icons.tune_rounded,
                   color: widget.hasActiveFilter
                       ? Colors.white
-                      : Colors.grey.shade700,
+                      : AppColors.primary,
                   size: 22,
                 ),
               ),

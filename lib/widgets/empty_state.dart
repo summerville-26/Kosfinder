@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import '../core/theme.dart';
 
-/// Widget untuk menampilkan kondisi data kosong dengan ikon, pesan, dan tombol aksi opsional.
+/// Widget untuk menampilkan kondisi data kosong dengan ilustrasi, pesan, dan tombol aksi opsional.
 class EmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -25,19 +26,32 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 64,
-              color: Colors.grey.shade400,
+            Container(
+              width: 90,
+              height: 90,
+              decoration: BoxDecoration(
+                color: AppColors.primarySurface,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.primaryLight.withValues(alpha: 0.3),
+                  width: 2,
+                ),
+              ),
+              child: Icon(
+                icon,
+                size: 44,
+                color: AppColors.primary,
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Text(
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: AppColors.textPrimary,
+                letterSpacing: -0.3,
               ),
             ),
             if (message != null) ...[
@@ -45,22 +59,28 @@ class EmptyState extends StatelessWidget {
               Text(
                 message!,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
-                  color: Colors.grey.shade600,
-                  height: 1.4,
+                  color: AppColors.textSecondary,
+                  height: 1.5,
                 ),
               ),
             ],
             if (onAction != null && actionLabel != null) ...[
-              const SizedBox(height: 20),
-              OutlinedButton.icon(
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
                 onPressed: onAction,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: Text(actionLabel!),
-                style: OutlinedButton.styleFrom(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               ),

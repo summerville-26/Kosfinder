@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/config.dart';
+import 'core/theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/kos_provider.dart';
 import 'repositories/auth_repository.dart';
@@ -11,13 +12,27 @@ import 'screens/home_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Membaca kredensial dari --dart-define secara aman tanpa hardcoded keys
-  if (AppConfig.isConfigured) {
-    await Supabase.initialize(
-      url: AppConfig.supabaseUrl,
-      // ignore: deprecated_member_use
-      anonKey: AppConfig.supabaseAnonKey,
-    );
+  // Prioritas konfigurasi: dari --dart-define jika ada, atau menggunakan URL & Key proyek
+  const defaultUrl = 'https://ibickfmxyrgazmdcmgld.supabase.co';
+  const defaultAnonKey = 'sb_publishable_yUjvvg09H4OzlVY_o7cAKQ_8lALGl00';
+
+  final supabaseUrl = AppConfig.supabaseUrl.isNotEmpty
+      ? AppConfig.supabaseUrl
+      : defaultUrl;
+  final supabaseAnonKey = AppConfig.supabaseAnonKey.isNotEmpty
+      ? AppConfig.supabaseAnonKey
+      : defaultAnonKey;
+
+  if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
+    try {
+      await Supabase.initialize(
+        url: supabaseUrl,
+        // ignore: deprecated_member_use
+        anonKey: supabaseAnonKey,
+      );
+    } catch (e) {
+      debugPrint('Supabase init error: $e');
+    }
   }
 
   runApp(const KosFinderApp());
@@ -48,12 +63,7 @@ class KosFinderApp extends StatelessWidget {
       child: MaterialApp(
         title: 'KosFinder',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF1B5E20),
-          ),
-          useMaterial3: true,
-        ),
+        theme: AppTheme.lightTheme,
         home: const HomeScreen(),
       ),
     );
