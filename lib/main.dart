@@ -12,23 +12,13 @@ import 'screens/home_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Prioritas konfigurasi: dari --dart-define jika ada, atau menggunakan URL & Key proyek
-  const defaultUrl = 'https://ibickfmxyrgazmdcmgld.supabase.co';
-  const defaultAnonKey = 'sb_publishable_yUjvvg09H4OzlVY_o7cAKQ_8lALGl00';
-
-  final supabaseUrl = AppConfig.supabaseUrl.isNotEmpty
-      ? AppConfig.supabaseUrl
-      : defaultUrl;
-  final supabaseAnonKey = AppConfig.supabaseAnonKey.isNotEmpty
-      ? AppConfig.supabaseAnonKey
-      : defaultAnonKey;
-
-  if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
+  // Membaca kredensial dari --dart-define secara aman tanpa hardcoded keys (AGENTS.md)
+  if (AppConfig.isConfigured) {
     try {
       await Supabase.initialize(
-        url: supabaseUrl,
+        url: AppConfig.supabaseUrl,
         // ignore: deprecated_member_use
-        anonKey: supabaseAnonKey,
+        anonKey: AppConfig.supabaseAnonKey,
       );
     } catch (e) {
       debugPrint('Supabase init error: $e');
